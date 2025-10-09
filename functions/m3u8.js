@@ -4,9 +4,18 @@ export default async function handleM3U8(request) {
 
   if (!target) return new Response("Missing url", { status: 400 });
 
-  const res = await fetch(target, {
-    headers: { "User-Agent": "Mozilla/5.0" },
-  });
+  let res;
+  try {
+    // --- TRY to fetch the target URL ---
+    res = await fetch(target, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+    });
+  } catch (e) {
+    // --- CATCH any network errors and return a custom response ---
+    console.error(e);
+    return new Response(`Failed to fetch upstream URL: ${target}`, { status: 502 }); // 502 Bad Gateway is appropriate here
+  }
+
 
   if (!res.ok) return new Response("Upstream failed", { status: res.status });
 
