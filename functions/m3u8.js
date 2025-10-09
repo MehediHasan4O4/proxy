@@ -1,11 +1,10 @@
 export default async function handleM3U8(request) {
   const { searchParams } = new URL(request.url);
   const target = searchParams.get("url");
-  const referer = searchParams.get("referer"); // --- Get the Referer from the query ---
+  const referer = searchParams.get("referer");
 
   if (!target) return new Response("Missing url", { status: 400 });
 
-  // --- Prepare headers, adding the Referer if it exists ---
   const headers = { "User-Agent": "Mozilla/5.0" };
   if (referer) {
     headers["Referer"] = referer;
@@ -30,7 +29,6 @@ export default async function handleM3U8(request) {
       if (line.startsWith("#") || !line.trim()) return line;
       const abs = new URL(line, base).href;
       
-      // --- Rewrite the .ts URL and pass the referer along to the /api/ts endpoint ---
       let newTsUrl = `/api/ts?url=${encodeURIComponent(abs)}`;
       if (referer) {
         newTsUrl += `&referer=${encodeURIComponent(referer)}`;
