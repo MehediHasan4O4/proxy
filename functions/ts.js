@@ -1,11 +1,10 @@
 export default async function handleTs(request) {
   const { searchParams } = new URL(request.url);
   const target = searchParams.get("url");
-  const referer = searchParams.get("referer"); // --- Get the Referer from the query ---
+  const referer = searchParams.get("referer");
 
   if (!target) return new Response("Missing url", { status: 400 });
 
-  // --- Prepare headers, adding the Referer if it exists ---
   const headers = { "User-Agent": "Mozilla/5.0" };
   if (referer) {
     headers["Referer"] = referer;
@@ -20,10 +19,10 @@ export default async function handleTs(request) {
   }
 
   return new Response(res.body, {
+    status: res.status,
     headers: {
       "Content-Type": "video/mp2t",
       "Access-Control-Allow-Origin": "*",
-      "status": res.status,
     },
   });
 }
