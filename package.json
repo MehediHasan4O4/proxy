@@ -1,11 +1,11 @@
 {
   "name": "proxy",
   "version": "1.0.0",
-  "description": "HLS .m3u8 + .ts proxy for Cloudflare Pages + Workers",
+  "description": "HLS .m3u8 + .ts proxy for Cloudflare Workers",
   "main": "_worker.js",
   "scripts": {
-    "start": "wrangler pages dev",
-    "deploy": "wrangler pages publish . --project-name=proxy"
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
   },
   "dependencies": {
     "hls.js": "^1.5.0"
