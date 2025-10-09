@@ -1,3 +1,6 @@
 name = "proxy"
-main = "worker.js"
 compatibility_date = "2025-10-09"
+main = "_worker.js"
+
+[site]
+bucket = "./public"
