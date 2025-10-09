@@ -140,7 +140,7 @@ const HTML = `<!DOCTYPE html>
   <div class="test">
     <label for="url" id="labelurl">URL</label>
     <div class="input-group">
-      <input type="text" id="url" placeholder="Enter M3U8 URL" />
+      <input type="text" id="url" placeholder="Enter M3U8 URL or URL|Referer=xxx" />
       <input type="text" id="referer" placeholder="Referer (optional)" />
     </div>
     <button onclick="play()" class="btn btn-play">PLAY</button>
@@ -163,13 +163,26 @@ const HTML = `<!DOCTYPE html>
     let hls;
 
     function play() {
-      const url = document.getElementById("url").value;
-      const referer = document.getElementById("referer").value;
+      let url = document.getElementById("url").value;
+      let referer = document.getElementById("referer").value;
       const resultDiv = document.getElementById("result");
 
       if (!url) {
         alert("Please enter a URL");
         return;
+      }
+
+      // Parse pipe-separated format: url|Referer=referer
+      if (url.includes("|Referer=") || url.includes("|referer=")) {
+        const parts = url.split("|");
+        url = parts[0];
+        const refererPart = parts[1];
+        if (refererPart) {
+          referer = refererPart.replace(/^Referer=/i, "");
+        }
+        // Update input fields with parsed values
+        document.getElementById("url").value = url;
+        document.getElementById("referer").value = referer;
       }
 
       let proxyUrl = \`/api/m3u8?url=\${encodeURIComponent(url)}\`;
@@ -218,8 +231,18 @@ const HTML = `<!DOCTYPE html>
     // Auto-play if URL parameters are present
     window.addEventListener("DOMContentLoaded", function() {
       const params = new URLSearchParams(window.location.search);
-      const url = params.get("url");
-      const referer = params.get("referer");
+      let url = params.get("url");
+      let referer = params.get("referer");
+      
+      // Parse pipe-separated format if present
+      if (url && (url.includes("|Referer=") || url.includes("|referer="))) {
+        const parts = url.split("|");
+        url = parts[0];
+        const refererPart = parts[1];
+        if (refererPart) {
+          referer = refererPart.replace(/^Referer=/i, "");
+        }
+      }
       
       if (url) {
         document.getElementById("url").value = url;
