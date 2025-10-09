@@ -13,7 +13,13 @@
   <video id="video" controls autoplay></video>
   <script>
     const video = document.getElementById('video');
-    const src = '/api/m3u8?url=' + encodeURIComponent("https://nxtlive.net/sliv/stream.m3u8?id=1000009246");
+
+    // --- Define the stream URL and the required Referer ---
+    const m3u8Url = "https://nxtlive.net/sliv/stream.m3u8?id=1000009246";
+    const refererUrl = "https://nxtlive.net/sliv/stream.m3u8?id=1000009246";
+
+    // --- Pass both as query parameters to our proxy API ---
+    const src = `/api/m3u8?url=${encodeURIComponent(m3u8Url)}&referer=${encodeURIComponent(refererUrl)}`;
 
     if (Hls.isSupported()) {
       const hls = new Hls();
