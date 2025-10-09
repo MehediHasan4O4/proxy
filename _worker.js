@@ -1,5 +1,5 @@
-import m3u8Handler from "./functions/m3u8";
-import tsHandler from "./functions/ts";
+import m3u8Handler from "./functions/m3u8.js";
+import tsHandler from "./functions/ts.js";
 
 export default {
   async fetch(request, env) {
