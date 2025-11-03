@@ -1,6 +1,5 @@
-// /functions/m3u8.js
-export async function onRequest(context) {
-  const { request } = context;
+// /functions/m3u8.js - Fixed Version
+async function handleM3U8Request(request) {
   const url = new URL(request.url);
   const targetUrlStr = url.searchParams.get('url');
 
@@ -75,3 +74,6 @@ export async function onRequest(context) {
     return new Response(e.message, { status: 500 });
   }
 }
+
+// Export as default to match _worker.js
+export default handleM3U8Request;
