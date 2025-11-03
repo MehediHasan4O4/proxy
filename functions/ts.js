@@ -1,6 +1,5 @@
-// /functions/ts.js
-export async function onRequest(context) {
-  const { request } = context;
+// /functions/ts.js - Fixed Version
+async function handleTsRequest(request) {
   const url = new URL(request.url);
   const targetUrlStr = url.searchParams.get('url');
 
@@ -22,7 +21,7 @@ export async function onRequest(context) {
 
     const headers = new Headers({
       'Content-Type': response.headers.get('Content-Type') || 'video/mp2t',
-      'Access-Control-Allow-Origin': corsHeader,
+.      'Access-Control-Allow-Origin': corsHeader,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Cache-Control': 'public, max-age=600', // Cache segments for 10 mins
@@ -37,3 +36,6 @@ export async function onRequest(context) {
     return new Response(e.message, { status: 500 });
   }
 }
+
+// Export as default to match _worker.js
+export default handleTsRequest;
