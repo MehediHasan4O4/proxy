@@ -1,28 +1,39 @@
-export default async function handleTs(request) {
-  const { searchParams } = new URL(request.url);
-  const target = searchParams.get("url");
-  const referer = searchParams.get("referer");
+// /functions/ts.js
+export async function onRequest(context) {
+  const { request } = context;
+  const url = new URL(request.url);
+  const targetUrlStr = url.searchParams.get('url');
 
-  if (!target) return new Response("Missing url", { status: 400 });
-
-  const headers = { "User-Agent": "Mozilla/5.0" };
-  if (referer) {
-    headers["Referer"] = referer;
+  if (!targetUrlStr) {
+    return new Response('Missing "url" query parameter', { status: 400 });
   }
-  
-  let res;
+
+  // Lock the worker to your Vercel app
+  const allowedOrigins = ['https://livetvpro.vercel.app', 'http://localhost:5173'];
+  const origin = request.headers.get('Origin');
+  const corsHeader = allowedOrigins.includes(origin) ? origin : 'null';
+
   try {
-    res = await fetch(target, { headers });
-  } catch (e) {
-    console.error(e);
-    return new Response(`Failed to fetch upstream segment: ${target}`, { status: 502 });
-  }
+    const response = await fetch(targetUrlStr, {
+      headers: {
+        'User-Agent': request.headers.get('User-Agent') || 'CloudflareWorker',
+      },
+    });
 
-  return new Response(res.body, {
-    status: res.status,
-    headers: {
-      "Content-Type": "video/mp2t",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
+    const headers = new Headers({
+      'Content-Type': response.headers.get('Content-Type') || 'video/mp2t',
+      'Access-Control-Allow-Origin': corsHeader,
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Cache-Control': 'public, max-age=600', // Cache segments for 10 mins
+    });
+
+    return new Response(response.body, {
+      status: response.status,
+      headers: headers,
+    });
+
+  } catch (e) {
+    return new Response(e.message, { status: 500 });
+  }
 }
