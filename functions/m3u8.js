@@ -1,46 +1,77 @@
-export default async function handleM3U8(request) {
-  const { searchParams } = new URL(request.url);
-  const target = searchParams.get("url");
-  const referer = searchParams.get("referer");
+// /functions/m3u8.js
+export async function onRequest(context) {
+  const { request } = context;
+  const url = new URL(request.url);
+  const targetUrlStr = url.searchParams.get('url');
 
-  if (!target) return new Response("Missing url", { status: 400 });
-
-  const headers = { "User-Agent": "Mozilla/5.0" };
-  if (referer) {
-    headers["Referer"] = referer;
+  if (!targetUrlStr) {
+    return new Response('Missing "url" query parameter', { status: 400 });
   }
 
-  let res;
+  let targetUrl;
   try {
-    res = await fetch(target, { headers });
+    targetUrl = new URL(targetUrlStr);
   } catch (e) {
-    console.error(e);
-    return new Response(`Failed to fetch upstream URL: ${target}`, { status: 502 });
+    return new Response('Invalid "url" query parameter', { status: 400 });
   }
 
-  if (!res.ok) return new Response("Upstream failed", { status: res.status });
+  // Lock the worker to your Vercel app
+  const allowedOrigins = ['https://livetvpro.vercel.app', 'http://localhost:5173'];
+  const origin = request.headers.get('Origin');
+  const corsHeader = allowedOrigins.includes(origin) ? origin : 'null';
 
-  let body = await res.text();
-  const base = new URL(target);
+  try {
+    const response = await fetch(targetUrl.toString(), {
+      headers: {
+        'User-Agent': request.headers.get('User-Agent') || 'CloudflareWorker',
+        'Referer': targetUrl.origin,
+      },
+    });
 
-  body = body
-    .split("\n")
-    .map((line) => {
-      if (line.startsWith("#") || !line.trim()) return line;
-      const abs = new URL(line, base).href;
-      
-      let newTsUrl = `/api/ts?url=${encodeURIComponent(abs)}`;
-      if (referer) {
-        newTsUrl += `&referer=${encodeURIComponent(referer)}`;
+    if (!response.ok) {
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+      });
+    }
+
+    const m3u8Content = await response.text();
+
+    const rewrittenM3u8 = m3u8Content.split('\n').map(line => {
+      line = line.trim();
+      if (line.startsWith('#') || line === '') {
+        // Handle encryption keys
+        if (line.includes('URI=')) {
+          return line.replace(/URI="([^"]+)"/g, (match, uri) => {
+            const keyUrl = new URL(uri, targetUrl);
+            return `URI="/ts?url=${encodeURIComponent(keyUrl.toString())}"`;
+          });
+        }
+        return line; // Return other comments/directives as is
       }
-      return newTsUrl;
-    })
-    .join("\n");
+      
+      // Handle segments and sub-playlists
+      if (line.endsWith('.ts')) {
+        const segmentUrl = new URL(line, targetUrl);
+        return `/ts?url=${encodeURIComponent(segmentUrl.toString())}`;
+      } else if (line.endsWith('.m3u8')) {
+        const segmentUrl = new URL(line, targetUrl);
+        return `/m3u8?url=${encodeURIComponent(segmentUrl.toString())}`;
+      }
+      
+      return line; // Return any other lines
+    }).join('\n');
 
-  return new Response(body, {
-    headers: {
-      "Content-Type": "application/vnd.apple.mpegurl",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
+    const headers = new Headers({
+      'Content-Type': 'application/vnd.apple.mpegurl',
+      'Access-Control-Allow-Origin': corsHeader,
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    });
+
+    return new Response(rewrittenM3u8, { headers });
+
+  } catch (e) {
+    return new Response(e.message, { status: 500 });
+  }
 }
